@@ -82,6 +82,7 @@ def save_creds_to_cache(key_path, creds):
 
 def create_cache_key(config):
     role_arn = config['role_arn'].replace(':', '_')
+
     role_session_name = config.get('role_session_name')
     if role_session_name:
         cache_key = '%s--%s--%s' % (profile, role_arn, role_session_name)
@@ -97,13 +98,22 @@ def get_creds_from_sts(key_path):
     # Longer than that, and the max is 1 hour anyway
     sts_connection = STSConnection(profile_name=config['source_profile'])
     role_session_name = config.get('role_session_name')
+    mfa_serial = config.get('mfa_serial')
+
     if not role_session_name:
         role_session_name = 'AWS-Profile-session-%s' % (int(time.time()))
 
+    if mfa_serial:
+        token = raw_input("Enter your MFA token: ")
+    else:
+        token = None
+    
     assumedRoleObject = sts_connection.assume_role(
         role_arn=config['role_arn'],
         role_session_name=role_session_name,
         duration_seconds=900,
+        mfa_serial_number=mfa_serial,
+        mfa_token=token
     )
 
     creds = {
